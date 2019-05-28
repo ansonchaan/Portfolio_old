@@ -113,8 +113,8 @@ function AAPL_loadPageInit(scope){
 		if(!isBrowser('ie') && !isBrowser('ie11') && !ismobile && html.beforeChangeDone){
 			html.beforeChangeDone = false;
 			
-			if( this.href.indexOf('about.php') >= 0 )			toPage = 'about';
-			else if( this.href.indexOf('works.php') >= 0 )			toPage = 'works';
+			if( this.href.indexOf('about.html') >= 0 )			toPage = 'about';
+			else if( this.href.indexOf('works.html') >= 0 )			toPage = 'works';
 			else if( this.href.indexOf(AAPLhome) >=0 )			toPage = 'home';
 			//if( hasClass( this , 'lang' ) )						toPage = currentPage;
 
