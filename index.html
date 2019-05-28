@@ -1,26 +1,12 @@
-<?php
-	$isMobile = (bool)preg_match('#\b(ip(hone|od|ad)|android|opera m(ob|in)i|windows (phone|ce)|blackberry|tablet'.'|s(ymbian|eries60|amsung)|p(laybook|alm|rofile/midp|laystation portable)|nokia|fennec|htc[\-_]'.'|mobile|up\.browser|[1-4][0-9]{2}x[1-4][0-9]{2})\b#i', $_SERVER['HTTP_USER_AGENT'] ); 
-	
-	require_once 'Mobile_Detect.php';
-	$detect = new Mobile_Detect;
-	
-	require_once 'Browser_Detect.php';
-	$ua=getBrowser();
-	$yourbrowser= "Your browser: " . $ua['name'] . " " . $ua['version'] . " on " .$ua['platform'] . " reports: <br >" . $ua['userAgent'];
-?>
 <!DOCTYPE html>
-<html class="<?php echo $ua['name'];?><?php if($ua['name']=='IE')echo ' '.$ua['name'].$ua['version'];?><?php if($isMobile):if(strpos($ua['userAgent'],'CriOS')):?> mobileChrome<?php else:?> mobileSafari<?php endif;endif;?>">
+<html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0, user-scalable=no">
 <title>Anson's Portfolio</title>
-<?php $url = 'http://'.$_SERVER['SERVER_NAME'].'/'.basename(dirname($_SERVER['PHP_SELF'])).'/'; ?>
-<base href="<?php echo $url; ?>" />
 <meta name="description" content="This is Anson Chan">
 <meta property="og:type" content="activity" />
 <meta property="og:description" content="This is Anson Chan" />
-<meta property="og:url" content="<?php echo 'http://'.$_SERVER['SERVER_NAME'].$_SERVER['REQUEST_URI']; ?>">
-<meta property="og:image" content="<?php echo $url; ?>images/fb.jpg">
 <meta property="og:title" content="Anson's Portfolio">
 <meta property="og:site_name" content="Anson's Portfolio">
 
@@ -44,8 +30,8 @@
 <script src="js/plugin/respond.js"></script>
 <![endif]-->
 <script type="text/javascript">
-	var AAPLsiteurl = '<?php echo $url; ?>';
-	var AAPLhome = '<?php echo $url; ?>';
+	var AAPLsiteurl = window.location.href;
+	var AAPLhome = window.location.href;
 	var currentPage,toPage;
 </script>
 <script>
@@ -78,8 +64,8 @@
 				</div>
 				<ul id="menu" class="cap alignC bold venter_item">
 					<li><a class="page" href=""><h4>home</h4></a></li>
-					<li><a class="page" href="about.php"><h4>about</h4></a></li>
-					<li><a class="page" href="works.php"><h4>works</h4></a></li>
+					<li><a class="page" href="about.html"><h4>about</h4></a></li>
+					<li><a class="page" href="works.html"><h4>works</h4></a></li>
 				</ul>
 			</div>
 			<div id="sns" class="clearfix">
@@ -108,3 +94,16 @@
 				</a>
 			</div>
 		</div>
+	<div id="main" class="main">
+		<div id="ajax">
+			<section id="home">
+			</section>
+		</div>
+	</div>
+	<!-- <script src="js/home.js"></script> -->
+
+	<div class="footer center">
+	</div>
+</div>
+</body>
+</html>
