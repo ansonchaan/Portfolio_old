@@ -77,8 +77,8 @@ window.onpopstate = function(event) {
 	if (AAPL_started === true && AAPL_check_ignore(document.location.toString()) == true) {	
 		
 		var url = document.location.toString();//.split('chapel-of-dawn/');
-		if( url.indexOf('about.php') >= 0)				toPage = 'about';
-		else if( url.indexOf('works.php') >= 0)				toPage = 'works';
+		if( url.indexOf('about.html') >= 0)				toPage = 'about';
+		else if( url.indexOf('works.html') >= 0)				toPage = 'works';
 		else if( url.indexOf(AAPLhome) >= 0 )			toPage = 'home';
 		
 		//console.log(toPage);
