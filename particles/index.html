@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset=utf-8>
+		<title>particles</title>
+		<style>
+			html,body{ overflow: hidden; }
+			body { padding:0; margin: 0; }
+			canvas { width: 100%; height: 100%; }
+		</style>
+	</head>
+	<body>
+		<script id="vertexShader" type="x-shader/x-vertex">
+			attribute float alpha;
+			attribute vec3 color;
+			varying float vAlpha;
+			varying vec4 vColor;
+			uniform float time;
+			uniform float size;
+			uniform float depth;
+			void main()	{
+				vec3 newPosition = position;
+				newPosition.x += sin(newPosition.x + time) * .1;
+				newPosition.y += -cos(newPosition.y + time) * .1;
+				newPosition.z += -cos(newPosition.z + time) * .1;
+
+				vec4 position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+				gl_Position = position;
+
+				vAlpha = (size - (distance(vec3(0.,0.,0.), position.xyz) / depth)) * 3.;
+				vColor = vec4(color,vAlpha);
+				gl_PointSize = (size - (distance(vec3(0.,0.,0.), position.xyz) / depth)) * 3.;
+			}
+		</script>
+	
+		<script id="fragmentShader" type="x-shader/x-fragment">
+			varying float vAlpha;
+			varying vec4 vColor;
+			uniform sampler2D texture;
+			void main()	{
+				gl_FragColor = vColor * texture2D(texture, gl_PointCoord);
+			}
+		</script>
+        <script src="https://threejs.org/build/three.js"></script>
+        <script src="https://threejs.org/examples/js/loaders/LoaderSupport.js"></script>
+		<script src="https://threejs.org/examples/js/loaders/OBJLoader2.js"></script>
+		<!-- <script src="https://threejs.org/examples/js/loaders/PLYLoader.js"></script> -->
+		<!-- <script src="http://dev.miaumiau.cat/curl_particles_collision/js/CameraControl.js"></script> -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/2.1.2/TweenMax.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.5/dat.gui.min.js"></script>
+		<script src="https://rawgit.com/mrdoob/three.js/master/examples/js/controls/OrbitControls.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/chroma-js/2.0.3/chroma.min.js"></script>
+		<script>
+			var maxPoints = 200000;
+
+            var scene = new THREE.Scene();
+			var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			camera.position.z = 22;
+			// var controls = new THREE.OrbitControls( camera );
+
+            var renderer = new THREE.WebGLRenderer( { antialias: true } );
+			renderer.setPixelRatio( window.devicePixelRatio );
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.setClearColor( 0x000000, 1 );
+			document.body.appendChild( renderer.domElement );
+
+            // var ambientLight = new THREE.AmbientLight( 0x000000 );
+            // scene.add( ambientLight );
+            // var lights = [];
+			// lights[ 0 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+			// lights[ 1 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+			// lights[ 2 ] = new THREE.PointLight( 0xffffff, 1, 0 );
+
+			// lights[ 0 ].position.set( 0, 200, 0 );
+			// lights[ 1 ].position.set( 100, 200, 100 );
+			// lights[ 2 ].position.set( - 100, - 200, - 100 );
+
+			// scene.add( lights[ 0 ] );
+			// scene.add( lights[ 1 ] );
+			// scene.add( lights[ 2 ] );
+
+			var options = {
+				wave: false,
+				point:{
+					size:35,
+					depth:.8
+				},
+				camera:{
+					z:camera.position.z
+				},
+				deerToRabbit: function(){
+					// done = false;
+					morphTo(rabbitPoint);
+				},
+				RabbitToDeer: function(){
+					// done = false;
+					morphTo(deerPoint);
+				}
+			}
+			var gui = new dat.GUI({width: 300});
+			gui.add(options.point, 'size').min(1).max(100).name('Size of point');
+			gui.add(options.point, 'depth').min(.1).max(5).name('Depth of point');
+			gui.add(options.camera, 'z').min(0).max(50).name('Camera position Z');
+			gui.add(options, 'deerToRabbit').name('morph to 🐇');
+			gui.add(options, 'RabbitToDeer').name('morph to 🍐');
+			gui.add(options, 'wave').name('wave');
+
+			
+			function generateCircularSprite(color) {
+				var canvas = document.createElement('canvas');
+				canvas.height = 100;
+				canvas.width = 100;
+				var context = canvas.getContext('2d');
+				var centerX = canvas.width / 2;
+				var centerY = canvas.height / 2;
+				var radius = 50;
+
+				context.beginPath();
+				context.arc(centerX, centerY, radius, 0, 2 * Math.PI, false);
+				context.fillStyle = "rgba(255, 255, 255, 0.9)";
+				context.fill();
+				return canvas;
+			}
+			var pointsGeometry = new THREE.BufferGeometry();
+			var pointsMaterial;
+			var finallyPoint;
+			var deerPoint,rabbitPoint;
+			var color = 0xff00ff;
+			var uniforms = {
+				time: { value: 0 },
+				size: { value: options.point.size },
+				depth: { value: options.point.depth },
+				texture:{
+					type: "t",
+					value: new THREE.TextureLoader().load('https://klevron.github.io/codepen/misc/star.png')
+				}
+			};
+			
+
+			var pointsMaterial = new THREE.ShaderMaterial({
+				uniforms: uniforms,
+				vertexShader: document.getElementById('vertexShader').textContent,
+				fragmentShader: document.getElementById('fragmentShader').textContent,
+				blending: THREE.AdditiveBlending,
+				depthTest: true,
+    			depthWrite: false,
+				transparent: true
+			});
+
+			// var changeColor = function(value){
+			// 	var value = new THREE.Color(value);
+			// 	var c = new THREE.Color(finallyPoint.material.color.getHex());
+			// 	TweenLite.to(c, 1, {
+			// 		r: value.r,
+			// 		g: value.g,
+			// 		b: value.b,
+			// 		ease: Cubic.easeInOut,
+			// 		onUpdate: function(){ finallyPoint.material.color = c; }
+			// 	});
+			// }
+
+            var loadOBJ = function(){
+				var manager = new THREE.LoadingManager();
+				manager.onLoad = function(){
+					console.log( 'Loading complete!');
+
+					// init
+					var cscale = chroma.scale([0x00b9e0, 0xff880a, 0x5f1b90, 0x7ec08d]);
+					var positions = new Float32Array( maxPoints * 3 );
+					alphas = new Float32Array( maxPoints * 1 );
+					colors = new Float32Array( maxPoints * 3 );
+					for(var i=0; i<maxPoints; i++){
+						color = new THREE.Color(cscale(THREE.Math.randFloat(0, 1)).hex());
+						color.toArray(colors, i*3);
+					}
+					pointsGeometry.addAttribute( 'position', new THREE.BufferAttribute( positions, 3 ) );
+					pointsGeometry.addAttribute( 'alpha', new THREE.BufferAttribute( alphas, 1 ));
+					pointsGeometry.addAttribute( 'color', new THREE.BufferAttribute( colors, 3 ));
+
+					morphTo(rabbitPoint);
+					// console.log(target,pointsGeometry.attributes.position,positions,plane);
+
+					// pointsMaterial = new THREE.PointsMaterial( { color: 0xffff00, size:.1 } );
+					finallyPoint = new THREE.Points( pointsGeometry, pointsMaterial );
+					finallyPoint.position.y = -8;
+					finallyPoint.rotation.y = 15;
+					finallyPoint.scale.set(3,3,3);
+					scene.add(finallyPoint);
+				};
+				var loader = new THREE.OBJLoader2(manager);
+                loader.load( './pear.obj', function ( obj ) {
+					var geometry = obj.detail.loaderRootNode;
+					geometry.traverse( function( child ) {
+						if ( child instanceof THREE.Mesh ) {
+							// var material = new THREE.MeshLambertMaterial({color: 0x999999});
+							// child.material = pointsMaterial;
+							// child.position.x = -16;
+							// child.position.y = -8;
+
+							// change to geometry
+							var geo = new THREE.Geometry().fromBufferGeometry( child.geometry );
+
+							// var pointsMaterial = new THREE.PointsMaterial( { color: 0xff0000, size:.1 } );
+							deerPoint = new THREE.Points( geo, pointsMaterial );
+							// deerPoint.position.x = -16;
+							// deerPoint.position.y = -8;
+							// scene.add( deerPoint );
+						}
+					});
+                    // scene.add( geometry );
+                }, null, null, null, false );
+
+
+				loader = new THREE.OBJLoader2(manager);
+				loader.load( './bunny.obj', function ( obj ) {
+					var geometry = obj.detail.loaderRootNode;
+					geometry.traverse( function( child ) {
+						if ( child instanceof THREE.Mesh ) {
+							// var material = new THREE.MeshLambertMaterial({color: 0x999999});
+							child.material = pointsMaterial;
+							child.position.x = 16;
+							child.position.y = -4;
+
+							// change to geometry
+							var geo = new THREE.Geometry().fromBufferGeometry( child.geometry );
+
+							// var pointsMaterial = new THREE.PointsMaterial( { color: 0xff00ff, size:.1 } );
+							rabbitPoint = new THREE.Points( geo , pointsMaterial );
+							// rabbitPoint.position.x = 16;
+							// rabbitPoint.position.y = -4;
+							// scene.add( rabbitPoint );
+						}
+					});
+					// scene.add( geometry );
+				}, null, null, null, false );
+            }
+			loadOBJ();
+
+			var targetMesh;
+			var target = [];
+			var morphTo = function(mesh){
+				var pos = pointsGeometry.attributes.position.array;
+				targetMesh = mesh;
+				for(var i=0; i<maxPoints; i++){
+					if(targetMesh.geometry.vertices[i]){
+						target[i] = {
+							x:mesh.geometry.vertices[i].x,
+							y:mesh.geometry.vertices[i].y,
+							z:mesh.geometry.vertices[i].z
+						};
+						// pos[i*3+0] = mesh.geometry.vertices[i].x;
+						// pos[i*3+1] = mesh.geometry.vertices[i].y;
+						// pos[i*3+2] = mesh.geometry.vertices[i].z;
+						// TweenMax.to(pointsGeometry.vertices[i],2,{
+						// 	'x':mesh.geometry.vertices[i].x,
+						// 	'y':mesh.geometry.vertices[i].y,
+						// 	'z':mesh.geometry.vertices[i].z,
+						// 	ease:Power4.easeInOut
+						// });
+						// alphas[i] = 1.0;
+					}
+					else{
+						target[i] = {
+							x:THREE.Math.randFloat(-100,100),
+							y:THREE.Math.randFloat(-100,100),
+							z:THREE.Math.randFloat(-100,100)
+						};
+						// TweenMax.to(pointsGeometry.vertices[i],2,{
+						// 	'x':mesh.geometry.vertices[0].x,
+						// 	'y':mesh.geometry.vertices[0].y,
+						// 	'z':mesh.geometry.vertices[0].z,
+						// 	ease:Power4.easeInOut
+						// });
+						//  alphas[i] = 0.0;
+					}
+				}
+			}
+
+			var started = false;
+			var start = Date.now();
+			// var done = false;
+            var animate = function () {
+				requestAnimationFrame( animate );
+
+				var timer = (Date.now() - start) * .00005;
+
+				if(targetMesh){
+					var pos = pointsGeometry.attributes.position.array;
+					var alpha = pointsGeometry.attributes.alpha.array;
+					for(var i=0; i<maxPoints; i++){
+						if(targetMesh.geometry.vertices[i]){
+							pos[i*3+0] += (target[i].x - pos[i*3+0]) * .1;
+							pos[i*3+1] += (target[i].y - pos[i*3+1]) * .1;
+							pos[i*3+2] += (target[i].z - pos[i*3+2]) * .1;
+							
+							// alphas[i] = 0.0;
+						}
+						else{
+							pos[i*3+0] += (target[i].x - pos[i*3+0]) * ((started)?.1:1);
+							pos[i*3+1] += (target[i].y - pos[i*3+1]) * ((started)?.1:1);
+							pos[i*3+2] += (target[i].z - pos[i*3+2]) * ((started)?.1:1);
+
+							// alphas[i] = 0.0;
+						}
+					}
+					if(!started) started = true;
+				}
+				// 
+				if(finallyPoint){
+					finallyPoint.rotation.y-=.005;
+					if(options.wave){
+						TweenMax.killAll();
+						finallyPoint.material.uniforms.time.value+=.05;
+					}
+					else
+						TweenMax.set(finallyPoint.material.uniforms.time,{value:0});
+
+					finallyPoint.material.uniforms.size.value = options.point.size;
+					finallyPoint.material.uniforms.depth.value = options.point.depth;
+				}
+
+
+				camera.position.z = options.camera.z;
+				// camera.position.x = (Math.sin(timer)*30);
+				// camera.position.z = -(Math.cos(timer)*30);
+
+				if(pointsGeometry.attributes.position) pointsGeometry.attributes.position.needsUpdate = true;
+				if(pointsGeometry.attributes.alpha) pointsGeometry.attributes.alpha.needsUpdate = true;
+				if(pointsGeometry.attributes.color) pointsGeometry.attributes.color.needsUpdate = true;
+
+				camera.lookAt(new THREE.Vector3(0,0,0));
+                // controls.update();
+				renderer.render( scene, camera );
+            };
+            animate();
+
+
+
+			//
+			// Random
+			//
+			var random = function( min , max , isRound ){
+				var ran = (Math.random() * (max - min)) + min;
+				if(isRound)
+					return Math.round(ran);
+				else
+					return ran;
+			}
+
+		</script>
+	</body>
+</html>
